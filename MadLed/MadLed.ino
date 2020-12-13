@@ -160,9 +160,9 @@ void loop() {
       {
         byte intDataPin = reportData[1];
         byte page = reportData[2];
-        int ct = 20 * page;
+        int ct = 19 * page;
         int cp = 3;
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 19; i++) {
           byte r = reportData[cp + 0];
           byte g = reportData[cp + 1];
           byte b = reportData[cp + 2];

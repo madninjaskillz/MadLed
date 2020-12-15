@@ -273,9 +273,10 @@ void loop() {
 
       if (cmd == 2)
       {
+         byte intDataPin = reportData[1];
       int pos = (intDataPin) * 20;
         for (int i = 0; i < 20; i++) {
-          RawHID.Write(EEPROM.read(pos + 1));
+          RawHID.write(EEPROM.read(pos + 1));
         }
       }
 

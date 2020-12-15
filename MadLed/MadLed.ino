@@ -74,27 +74,27 @@ unsigned long seedOut(unsigned int noOfBits)
 
 void setup() {
 
-  Serial.begin(115200);
+  //Serial.begin(115200);
 
   // Set the RawHID OUT report array.
   // Feature reports are also (parallel) possible, see the other example for this.
   delay(5000);
-  //Serial.println("Checking for config...");
+  ////Serial.println("Checking for config...");
   char sID[4];
   for (int i = 0; i < 4; i++) {
     sID[i] = EEPROM.read(i);
   }
 
-  if (sID[0] == 77 && sID[1]==76 && sID[2]==78 && sID[3]==71) {
+  if (sID[0] == 77 && sID[1] == 76 && sID[2] == 78 && sID[3] == 71) {
 
-    Serial.println("Existing config found...");
+    //Serial.println("Existing config found...");
 
   } else {
-    Serial.println("no config found...creating");
-    Serial.println(sID[0]);
-    Serial.println(sID[1]);
-    Serial.println(sID[2]);
-    Serial.println(sID[3]);
+    //Serial.println("no config found...creating");
+    //Serial.println(sID[0]);
+    //Serial.println(sID[1]);
+    //Serial.println(sID[2]);
+    //Serial.println(sID[3]);
     unsigned long seed = seedOut(31);
     randomSeed(seed);
 
@@ -122,13 +122,13 @@ void setup() {
 
     for (int i = 0; i < 20; i++) {
       EEPROM.write(i, eeprom[i]);
-      eeprom[i+20]=" ";
+      eeprom[i + 20] = " ";
     }
 
 
-    //Serial.println("Generated serial:");
-    Serial.println(eeprom);
-    //Serial.println("End");
+    ////Serial.println("Generated serial:");
+    //Serial.println(eeprom);
+    ////Serial.println("End");
   }
 
   delay(500);
@@ -211,7 +211,7 @@ void loop() {
   uint8_t bytesAvailable = RawHID.available();
   if (bytesAvailable)
   {
-    //Serial.println("Bytes!");
+    ////Serial.println("Bytes!");
     int ct = 0;
     bool anydata = false;
     while (bytesAvailable--)
@@ -228,6 +228,8 @@ void loop() {
 
       if (cmd == 0)
       {
+        //Serial.println("cmd 0 received... sending ping data");
+        
         byte intDataPin = reportData[1];
         uint8_t intNoOfLed = reportData[2];
         uint8_t deviceclass = reportData[3];
@@ -240,11 +242,41 @@ void loop() {
         setupDevice(intDataPin, intNoOfLed);
         reportData[0] = 128;
         int pos = (intDataPin) * 20;
+        
         for (int i = 0; i < 20; i++) {
-          EEPROM.write(pos + 1, reportData[i]);
+
+//Serial.print("Writing to eeprom pos:");
+//Serial.print(pos+i);
+//Serial.print(",");
+//Serial.println(reportData[i]);
+
+          
+          EEPROM.write(pos + i, reportData[i]);
+          
         }
 
         RawHID.write(reportData, sizeof(reportData));
+      }
+
+      if (cmd == 10)
+      {
+        //Serial.println("cmd 10 received... sending ping data");
+        byte intDataPin = reportData[1];
+        uint8_t intNoOfLed = reportData[2];
+        uint8_t deviceclass = reportData[3];
+
+        char name[16];
+        for (int i = 0; i < 16; i++) {
+          name[i] = reportData[4 + i];
+        }
+
+//Serial.print("Reading data for pin ");
+//Serial.println(intDataPin);
+
+        setupDevice(intDataPin, intNoOfLed);
+        reportData[0] = 128;
+        RawHID.write(reportData, sizeof(reportData));
+
       }
 
       if (cmd == 1)
@@ -273,16 +305,43 @@ void loop() {
 
       if (cmd == 2)
       {
-         byte intDataPin = reportData[1];
-      int pos = (intDataPin) * 20;
-        for (int i = 0; i < 20; i++) {
-          RawHID.write(EEPROM.read(pos + 1));
+        //Serial.println("cmd 2 received... sending ping data");
+
+        byte intDataPin = reportData[1];
+        int pos = (intDataPin) * 20;
+        for (int i = 0; i < 64; i++) {
+          reportData[i] = 0;
         }
+
+//Serial.print("Reading data for pin ");
+//Serial.print(intDataPin);
+//Serial.print(" resulting in eeprom location: ");
+//Serial.println(pos);
+
+        for (int i = 0; i < 20; i++) {
+          reportData[i] = EEPROM.read(i + pos);
+        }
+
+        RawHID.write(reportData, sizeof(reportData));
       }
 
       if (cmd == 3)
       {
         FastLED.show();
+      }
+
+      if (cmd == 5)
+      {
+        //Serial.println("cmd 5 received... sending ping data");
+        for (int i = 0; i < 64; i++) {
+          reportData[i] = 0;
+        }
+
+        for (int i = 0; i < 20; i++) {
+          reportData[i] = EEPROM.read(i );
+        }
+
+        RawHID.write(reportData, sizeof(reportData));
       }
 
     }

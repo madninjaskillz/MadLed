@@ -1,4 +1,5 @@
 #include <FastLED.h>
+#include <EEPROM.h>
 
 class LEDDevice {
   public:
@@ -38,15 +39,102 @@ const int pinButton = 2;
 
 uint8_t rawhidData[64];
 
+
+unsigned int bitOut(void)
+{
+  static unsigned long firstTime = 1, prev = 0;
+  unsigned long bit1 = 0, bit0 = 0, x = 0, limit = 99;
+  if (firstTime)
+  {
+    firstTime = 0;
+    prev = analogRead(A0);
+  }
+  while (limit--)
+  {
+    x = analogRead(A0);
+    bit1 = (prev != x ? 1 : 0);
+    prev = x;
+    x = analogRead(A0);
+    bit0 = (prev != x ? 1 : 0);
+    prev = x;
+    if (bit1 != bit0)
+      break;
+  }
+  return bit1;
+}
+//------------------------------------------------------------------------------
+unsigned long seedOut(unsigned int noOfBits)
+{
+  // return value with 'noOfBits' random bits set
+  unsigned long seed = 0;
+  for (int i = 0; i < noOfBits; ++i)
+    seed = (seed << 1) | bitOut();
+  return seed;
+}
+
 void setup() {
 
-  //Serial.begin(115200);
+  Serial.begin(115200);
 
   // Set the RawHID OUT report array.
   // Feature reports are also (parallel) possible, see the other example for this.
+  delay(5000);
+  //Serial.println("Checking for config...");
+  char sID[4];
+  for (int i = 0; i < 4; i++) {
+    sID[i] = EEPROM.read(i);
+  }
+
+  if (sID[0] == 77 && sID[1]==76 && sID[2]==78 && sID[3]==71) {
+
+    Serial.println("Existing config found...");
+
+  } else {
+    Serial.println("no config found...creating");
+    Serial.println(sID[0]);
+    Serial.println(sID[1]);
+    Serial.println(sID[2]);
+    Serial.println(sID[3]);
+    unsigned long seed = seedOut(31);
+    randomSeed(seed);
+
+    char key[4] = "MLNG";
+
+    char eeprom[40];
+    for (int i = 0; i < 20; i++) {
+      eeprom[i] = " ";
+    }
+
+    for (int i = 0; i < 4; i++) {
+      eeprom[i] = key[i];
+    }
+
+
+    for (int p = 0; p < 20; p++) {
+      char xx = char(random(65, 90));
+      if (random(0, 10) > 7) {
+        xx = char(random(48, 57));
+      }
+
+      int dst = 4 + p;
+      eeprom[dst] = xx;
+    }
+
+    for (int i = 0; i < 20; i++) {
+      EEPROM.write(i, eeprom[i]);
+      eeprom[i+20]=" ";
+    }
+
+
+    //Serial.println("Generated serial:");
+    Serial.println(eeprom);
+    //Serial.println("End");
+  }
+
   delay(500);
 
   RawHID.begin(rawhidData, sizeof(rawhidData));
+
 }
 
 uint8_t reportData[64];
@@ -58,35 +146,35 @@ void setupDevice(byte intDataPin, uint8_t intNoOfLed) {
   {
 
     case 1:
-            FastLED.addLeds<WS2812B, DP1>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      FastLED.addLeds<WS2812B, DP1>(ledDevices[intDataPin - 1].leds, intNoOfLed);
       break;
 
     case 2:
-            FastLED.addLeds<WS2812B, DP2>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      FastLED.addLeds<WS2812B, DP2>(ledDevices[intDataPin - 1].leds, intNoOfLed);
       break;
 
     case 3:
-            FastLED.addLeds<WS2812B, DP3>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      FastLED.addLeds<WS2812B, DP3>(ledDevices[intDataPin - 1].leds, intNoOfLed);
       break;
 
     case 4:
-            FastLED.addLeds<WS2812B, DP4>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      FastLED.addLeds<WS2812B, DP4>(ledDevices[intDataPin - 1].leds, intNoOfLed);
       break;
 
     case 5:
-            FastLED.addLeds<WS2812B, DP5>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      FastLED.addLeds<WS2812B, DP5>(ledDevices[intDataPin - 1].leds, intNoOfLed);
       break;
 
     case 6:
-            FastLED.addLeds<WS2812B, DP6>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      FastLED.addLeds<WS2812B, DP6>(ledDevices[intDataPin - 1].leds, intNoOfLed);
       break;
 
     case 7:
-            FastLED.addLeds<WS2812B, DP7>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      FastLED.addLeds<WS2812B, DP7>(ledDevices[intDataPin - 1].leds, intNoOfLed);
       break;
 
     case 8:
-            FastLED.addLeds<WS2812B, DP8>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      FastLED.addLeds<WS2812B, DP8>(ledDevices[intDataPin - 1].leds, intNoOfLed);
       break;
   }
 
@@ -95,28 +183,27 @@ void setupDevice(byte intDataPin, uint8_t intNoOfLed) {
     ledDevices[intDataPin - 1].setLED(f, 255, 0, 0);
   }
   FastLED.show();
-  delay(500);
+  delay(100);
 
   for (int f = 0; f < intNoOfLed; f++)
   {
     ledDevices[intDataPin - 1].setLED(f, 0, 255, 0);
   }
   FastLED.show();
-  delay(500);
+  delay(100);
 
   for (int f = 0; f < intNoOfLed; f++)
   {
     ledDevices[intDataPin - 1].setLED(f, 0, 0, 255);
   }
   FastLED.show();
-  delay(500);
+  delay(100);
 
   for (int f = 0; f < intNoOfLed; f++)
   {
     ledDevices[intDataPin - 1].setLED(f, 0, 0, 0);
   }
   FastLED.show();
-  delay(500);
 }
 
 void loop() {
@@ -124,6 +211,7 @@ void loop() {
   uint8_t bytesAvailable = RawHID.available();
   if (bytesAvailable)
   {
+    //Serial.println("Bytes!");
     int ct = 0;
     bool anydata = false;
     while (bytesAvailable--)
@@ -150,8 +238,11 @@ void loop() {
         }
 
         setupDevice(intDataPin, intNoOfLed);
-
         reportData[0] = 128;
+        int pos = (intDataPin) * 20;
+        for (int i = 0; i < 20; i++) {
+          EEPROM.write(pos + 1, reportData[i]);
+        }
 
         RawHID.write(reportData, sizeof(reportData));
       }
@@ -182,7 +273,10 @@ void loop() {
 
       if (cmd == 2)
       {
-  //todo
+      int pos = (intDataPin) * 20;
+        for (int i = 0; i < 20; i++) {
+          RawHID.Write(EEPROM.read(pos + 1));
+        }
       }
 
       if (cmd == 3)

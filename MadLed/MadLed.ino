@@ -1,3 +1,20 @@
+/*
+
+MadLed Protocol - Written by MadNinja/James Johnston
+Assisted by FanMan03 and Legion
+
+Copyright 2020 James Johnston
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, 
+including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished 
+to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 #include <FastLED.h>
 #include <EEPROM.h>
 
@@ -6,19 +23,19 @@ class LEDDevice {
     uint8_t numberOfLeds;
     byte pin;
     String name;
-    CRGB* leds;
-    void setLED(int led, int r, int g, int b)
-    {
-      CRGB ledcolor;
-      ledcolor.setRGB(r, g, b);
+    /* CRGB* leds;
+      void setLED(int led, int r, int g, int b)
+      {
+       CRGB ledcolor;
+       ledcolor.setRGB(r, g, b);
 
-      leds[led] = ledcolor;
-    }
+       leds[led] = ledcolor;
+      }
 
-    CRGB getLED(int led)
-    {
-      return leds[led];
-    }
+      CRGB getLED(int led)
+      {
+       return leds[led];
+      }*/
 };
 
 #include "HID-Project.h"
@@ -31,7 +48,7 @@ class LEDDevice {
 #define DP6 6
 #define DP7 7
 #define DP8 8
-
+uint8_t gBrightness = 192;
 LEDDevice ledDevices[8];
 
 const int pinLed = LED_BUILTIN;
@@ -72,14 +89,26 @@ unsigned long seedOut(unsigned int noOfBits)
   return seed;
 }
 
+CRGB* leds;
+int mxleds = 1;
+CLEDController *controllers[8];
 void setup() {
 
   //Serial.begin(115200);
-
+  leds = new CRGB[1];
   // Set the RawHID OUT report array.
   // Feature reports are also (parallel) possible, see the other example for this.
   delay(5000);
-  ////Serial.println("Checking for config...");
+
+  /*FastLED.addLeds<WS2812B, DP1>(leds, intNoOfLed);
+    FastLED.addLeds<WS2812B, DP2>(leds, intNoOfLed);
+    FastLED.addLeds<WS2812B, DP3>(leds, intNoOfLed);
+    FastLED.addLeds<WS2812B, DP4>(leds, intNoOfLed);
+    FastLED.addLeds<WS2812B, DP5>(leds, intNoOfLed);
+    FastLED.addLeds<WS2812B, DP6>(leds, intNoOfLed);
+    FastLED.addLeds<WS2812B, DP7>(leds, intNoOfLed);
+    FastLED.addLeds<WS2812B, DP8>(leds, intNoOfLed);*/
+  //////Serial.println("Checking for config...");
   char sID[4];
   for (int i = 0; i < 4; i++) {
     sID[i] = EEPROM.read(i);
@@ -87,14 +116,14 @@ void setup() {
 
   if (sID[0] == 77 && sID[1] == 76 && sID[2] == 78 && sID[3] == 71) {
 
-    //Serial.println("Existing config found...");
+    ////Serial.println("Existing config found...");
 
   } else {
-    //Serial.println("no config found...creating");
-    //Serial.println(sID[0]);
-    //Serial.println(sID[1]);
-    //Serial.println(sID[2]);
-    //Serial.println(sID[3]);
+    ////Serial.println("no config found...creating");
+    ////Serial.println(sID[0]);
+    ////Serial.println(sID[1]);
+    ////Serial.println(sID[2]);
+    ////Serial.println(sID[3]);
     unsigned long seed = seedOut(31);
     randomSeed(seed);
 
@@ -126,9 +155,9 @@ void setup() {
     }
 
 
-    ////Serial.println("Generated serial:");
-    //Serial.println(eeprom);
-    ////Serial.println("End");
+    //////Serial.println("Generated //Serial:");
+    ////Serial.println(eeprom);
+    //////Serial.println("End");
   }
 
   delay(500);
@@ -141,95 +170,109 @@ uint8_t reportData[64];
 
 void setupDevice(byte intDataPin, uint8_t intNoOfLed) {
   ledDevices[intDataPin - 1].numberOfLeds = intNoOfLed;
-  ledDevices[intDataPin - 1].leds = new CRGB[intNoOfLed];
+  //ledDevices[intDataPin - 1].leds = new CRGB[intNoOfLed];
+
+  if (intNoOfLed > mxleds) {
+
+    mxleds = intNoOfLed;
+    leds = new CRGB[intNoOfLed];
+  }
+
   switch (intDataPin)
   {
 
     case 1:
-      FastLED.addLeds<WS2812B, DP1>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      controllers[0] = &FastLED.addLeds<WS2812B, DP1>(leds, intNoOfLed);
       break;
 
     case 2:
-      FastLED.addLeds<WS2812B, DP2>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      controllers[1] = &FastLED.addLeds<WS2812B, DP2>(leds, intNoOfLed);
       break;
 
     case 3:
-      FastLED.addLeds<WS2812B, DP3>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      controllers[2] = &FastLED.addLeds<WS2812B, DP3>(leds, intNoOfLed);
       break;
 
     case 4:
-      FastLED.addLeds<WS2812B, DP4>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      controllers[3] = &FastLED.addLeds<WS2812B, DP4>(leds, intNoOfLed);
       break;
 
     case 5:
-      FastLED.addLeds<WS2812B, DP5>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      controllers[4] = &FastLED.addLeds<WS2812B, DP5>(leds, intNoOfLed);
       break;
 
     case 6:
-      FastLED.addLeds<WS2812B, DP6>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      controllers[5] = &FastLED.addLeds<WS2812B, DP6>(leds, intNoOfLed);
       break;
 
     case 7:
-      FastLED.addLeds<WS2812B, DP7>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      controllers[6] = &FastLED.addLeds<WS2812B, DP7>(leds, intNoOfLed);
       break;
 
     case 8:
-      FastLED.addLeds<WS2812B, DP8>(ledDevices[intDataPin - 1].leds, intNoOfLed);
+      controllers[7] = &FastLED.addLeds<WS2812B, DP8>(leds, intNoOfLed);
       break;
   }
 
   for (int f = 0; f < intNoOfLed; f++)
   {
-    ledDevices[intDataPin - 1].setLED(f, 255, 0, 0);
+    leds[f].setRGB(255, 0, 0);
+    //ledDevices[].setLED(f, 255, 0, 0);
   }
-  FastLED.show();
+  controllers[intDataPin - 1]->showLeds(gBrightness);
+  //FastLED.show();
   delay(100);
 
   for (int f = 0; f < intNoOfLed; f++)
   {
-    ledDevices[intDataPin - 1].setLED(f, 0, 255, 0);
+    leds[f].setRGB( 0, 255, 0);
   }
-  FastLED.show();
+  //FastLED.show();
+  controllers[intDataPin - 1]->showLeds(gBrightness);
   delay(100);
 
   for (int f = 0; f < intNoOfLed; f++)
   {
-    ledDevices[intDataPin - 1].setLED(f, 0, 0, 255);
+    leds[f].setRGB(0, 0, 255);
   }
-  FastLED.show();
+
+  controllers[intDataPin - 1]->showLeds(gBrightness);
   delay(100);
 
   for (int f = 0; f < intNoOfLed; f++)
   {
-    ledDevices[intDataPin - 1].setLED(f, 0, 0, 0);
+    leds[f].setRGB(0, 0, 0);
   }
-  FastLED.show();
+  controllers[intDataPin - 1]->showLeds(gBrightness);
 }
 
+int packetsReceived = 0;
 void loop() {
   // Check if there is new data from the RawHID device
   uint8_t bytesAvailable = RawHID.available();
   if (bytesAvailable)
   {
-    ////Serial.println("Bytes!");
+    //Serial.print("Bytes availabe: ");
+    //Serial.println(bytesAvailable);
     int ct = 0;
     bool anydata = false;
     while (bytesAvailable--)
     {
       reportData[ct] = RawHID.read();
-      if (reportData[ct] > 0 && ct > 0) {
+      if (reportData[ct] > 0) {
         anydata = true;
       }
       ct++;
     }
 
     if (anydata) {
-      char cmd = reportData[0];
+      packetsReceived++;
+      bool doneCommand = false;
 
-      if (cmd == 0)
+      uint8_t cmd = reportData[0];
+
+      if (cmd == 0 || cmd == 10)
       {
-        //Serial.println("cmd 0 received... sending ping data");
-        
         byte intDataPin = reportData[1];
         uint8_t intNoOfLed = reportData[2];
         uint8_t deviceclass = reportData[3];
@@ -241,71 +284,65 @@ void loop() {
 
         setupDevice(intDataPin, intNoOfLed);
         reportData[0] = 128;
+        reportData[63] = 127;
         int pos = (intDataPin) * 20;
-        
-        for (int i = 0; i < 20; i++) {
 
-//Serial.print("Writing to eeprom pos:");
-//Serial.print(pos+i);
-//Serial.print(",");
-//Serial.println(reportData[i]);
-
-          
-          EEPROM.write(pos + i, reportData[i]);
-          
+        if (cmd == 10)
+        {
+          for (int i = 0; i < 20; i++) {
+            EEPROM.write(pos + i, reportData[i]);
+          }
         }
 
-        RawHID.write(reportData, sizeof(reportData));
-      }
-
-      if (cmd == 10)
-      {
-        //Serial.println("cmd 10 received... sending ping data");
-        byte intDataPin = reportData[1];
-        uint8_t intNoOfLed = reportData[2];
-        uint8_t deviceclass = reportData[3];
-
-        char name[16];
-        for (int i = 0; i < 16; i++) {
-          name[i] = reportData[4 + i];
-        }
-
-//Serial.print("Reading data for pin ");
-//Serial.println(intDataPin);
-
-        setupDevice(intDataPin, intNoOfLed);
         reportData[0] = 128;
         RawHID.write(reportData, sizeof(reportData));
-
       }
+
+
 
       if (cmd == 1)
       {
+        uint32_t convertedCol;
+        //Serial.println("cmd 1 received... setting rgb");
         byte intDataPin = reportData[1];
         byte page = reportData[2];
         int ct = 19 * page;
         int cp = 3;
-        for (int i = 0; i < 19; i++) {
-          byte r = reportData[cp + 0];
-          byte g = reportData[cp + 1];
-          byte b = reportData[cp + 2];
+        int i = 0;
+        while (cp < 63) {
+
+          //todo - omg this is so messy.
+          //im just converting 16bit 565 RGB to normal 8 bit RGB.
+
+          byte lb = reportData[cp + 0];
+          byte hb = reportData[cp + 1];
+          //byte b = reportData[cp + 2];
+          uint16_t color = (hb * 256) + lb;
+          uint32_t bits = (uint32_t)color;
+          uint32_t blue = bits & 0x001F;     // 5 bits blue
+          uint32_t green = bits & 0x07E0;    // 6 bits green
+          uint32_t red = bits & 0xF800;      // 5 bits red
+          convertedCol = (red << 8) | (green << 5) | (blue << 3) | 0xFF000000;
+          uint8_t *ccbytes = (uint8_t *)&convertedCol;
 
           if (ct < ledDevices[intDataPin - 1].numberOfLeds) {
 
-            ledDevices[intDataPin - 1].setLED(ct, r, g, b);
+            leds[ct].setRGB(ccbytes[1], ccbytes[0], ccbytes[2]);
 
           }
 
           ct++;
-          cp = cp + 3;
-
+          cp = cp + 2;
+          i++;
         }
 
+        controllers[intDataPin - 1]->showLeds(gBrightness);
+        //FastLED.show();
       }
 
       if (cmd == 2)
       {
-        //Serial.println("cmd 2 received... sending ping data");
+        //Serial.println("cmd 2 received... sending pin data");
 
         byte intDataPin = reportData[1];
         int pos = (intDataPin) * 20;
@@ -313,26 +350,23 @@ void loop() {
           reportData[i] = 0;
         }
 
-//Serial.print("Reading data for pin ");
-//Serial.print(intDataPin);
-//Serial.print(" resulting in eeprom location: ");
-//Serial.println(pos);
-
         for (int i = 0; i < 20; i++) {
           reportData[i] = EEPROM.read(i + pos);
         }
 
+        reportData[63] = 127;
         RawHID.write(reportData, sizeof(reportData));
       }
 
-      if (cmd == 3)
+//This is obsolete now
+/*      if (cmd == 3)
       {
-        FastLED.show();
-      }
+         FastLED.show();
+      }*/
 
       if (cmd == 5)
       {
-        //Serial.println("cmd 5 received... sending ping data");
+        //Serial.println("cmd 5 received... sending eeprom data");
         for (int i = 0; i < 64; i++) {
           reportData[i] = 0;
         }
@@ -340,10 +374,9 @@ void loop() {
         for (int i = 0; i < 20; i++) {
           reportData[i] = EEPROM.read(i );
         }
-
+        reportData[63] = 127;
         RawHID.write(reportData, sizeof(reportData));
       }
-
     }
   }
 }
